@@ -5,6 +5,16 @@ export interface Resolution {
   downloads: string;
   downloadUrl: string;
   pdfUrl: string;
+  isFavorite?: boolean;
+}
+
+export interface Form {
+  title: string;
+  desc: string;
+  url: string;
+  verified?: boolean;
+  category?: string;
+  isFavorite?: boolean;
 }
 
 export interface Message {

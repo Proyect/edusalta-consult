@@ -24,10 +24,17 @@ import {
   BookOpen,
   LayoutDashboard,
   Copy,
-  Check
+  Check,
+  CheckCircle,
+  Star,
+  Moon,
+  Sun,
+  Bell,
+  ArrowRight,
+  Filter
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Resolution, Message } from './types';
+import { Resolution, Message, Form } from './types';
 import { GoogleGenAI } from "@google/genai";
 
 // --- Components ---
@@ -37,8 +44,8 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }: { icon: any, label:
     onClick={onClick}
     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
       active 
-        ? 'bg-emerald-50 text-emerald-700 font-medium border border-emerald-100 shadow-sm' 
-        : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'
+        ? 'bg-emerald-50 text-emerald-700 font-medium border border-emerald-100 shadow-sm dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800' 
+        : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-100'
     }`}
   >
     <Icon size={20} className={active ? 'text-emerald-600' : 'text-zinc-400'} />
@@ -47,20 +54,28 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }: { icon: any, label:
   </button>
 );
 
-function ResolutionCard({ resolution }: { resolution: Resolution }) {
+function ResolutionCard({ resolution, onToggleFavorite }: { resolution: Resolution, onToggleFavorite: (id: string) => void }) {
   return (
-    <div className="group bg-white border border-zinc-200 rounded-2xl p-5 hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-300">
+    <div className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 hover:border-emerald-300 dark:hover:border-emerald-800 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-300">
       <div className="flex justify-between items-start mb-3">
-        <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+        <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
           <FileText size={12} />
           Resolución
         </div>
-        <span className="text-[11px] font-mono text-zinc-400">{resolution.date}</span>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => onToggleFavorite(resolution.id)}
+            className={`p-1.5 rounded-lg transition-colors ${resolution.isFavorite ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+          >
+            <Star size={16} fill={resolution.isFavorite ? 'currentColor' : 'none'} />
+          </button>
+          <span className="text-[11px] font-mono text-zinc-400">{resolution.date}</span>
+        </div>
       </div>
-      <h3 className="text-zinc-900 font-semibold text-base mb-2 group-hover:text-emerald-700 transition-colors line-clamp-2">
+      <h3 className="text-zinc-900 dark:text-zinc-100 font-semibold text-base mb-2 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors line-clamp-2">
         {resolution.title}
       </h3>
-      <div className="flex items-center gap-4 text-xs text-zinc-500 mb-4">
+      <div className="flex items-center gap-4 text-xs text-zinc-500 dark:text-zinc-400 mb-4">
         <span className="flex items-center gap-1">
           <Download size={14} className="opacity-70" />
           {resolution.downloads} descargas
@@ -73,8 +88,8 @@ function ResolutionCard({ resolution }: { resolution: Resolution }) {
           rel="noopener noreferrer"
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-colors ${
             resolution.downloadUrl === '#' 
-              ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed' 
-              : 'bg-zinc-900 text-white hover:bg-emerald-600'
+              ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed' 
+              : 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-emerald-600 dark:hover:bg-emerald-500 dark:hover:text-white'
           }`}
           onClick={(e) => resolution.downloadUrl === '#' && e.preventDefault()}
         >
@@ -87,8 +102,8 @@ function ResolutionCard({ resolution }: { resolution: Resolution }) {
           rel="noopener noreferrer"
           className={`w-11 h-11 flex items-center justify-center border rounded-xl transition-colors ${
             resolution.pdfUrl === '#' 
-              ? 'border-zinc-100 text-zinc-200 cursor-not-allowed' 
-              : 'border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+              ? 'border-zinc-100 dark:border-zinc-800 text-zinc-200 cursor-not-allowed' 
+              : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
           }`}
           onClick={(e) => resolution.pdfUrl === '#' && e.preventDefault()}
         >
@@ -99,12 +114,87 @@ function ResolutionCard({ resolution }: { resolution: Resolution }) {
   );
 }
 
+function FormCard({ form, onToggleFavorite, onOptimize }: { form: Form, onToggleFavorite?: (title: string) => void, onOptimize?: (title: string) => void }) {
+  const isOfficial = form.url.includes('gov.ar') || form.url.includes('edu.ar');
+  
+  return (
+    <div className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 hover:border-emerald-300 dark:hover:border-emerald-800 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-300">
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex flex-wrap gap-2">
+          {form.verified ? (
+            <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+              <CheckCircle size={12} />
+              Verificado
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+              <Info size={12} />
+              Pendiente
+            </div>
+          )}
+          {isOfficial && (
+            <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+              Oficial
+            </div>
+          )}
+          {form.category && (
+            <div className="flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+              {form.category}
+            </div>
+          )}
+        </div>
+        {onToggleFavorite && (
+          <button 
+            onClick={() => onToggleFavorite(form.title)}
+            className={`p-1.5 rounded-lg transition-colors ${form.isFavorite ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+          >
+            <Star size={16} fill={form.isFavorite ? 'currentColor' : 'none'} />
+          </button>
+        )}
+      </div>
+
+      <h3 className="text-zinc-900 dark:text-zinc-100 font-bold text-lg mb-2 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
+        {form.title}
+      </h3>
+      <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6 line-clamp-2 leading-relaxed">
+        {form.desc}
+      </p>
+
+      <div className="flex gap-2">
+        <a 
+          href={form.url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${
+            form.url === '#' 
+              ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed' 
+              : 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-emerald-600 dark:hover:bg-emerald-500 dark:hover:text-white'
+          }`}
+          onClick={(e) => form.url === '#' && e.preventDefault()}
+        >
+          <Download size={18} />
+          {form.url === '#' ? 'No disponible' : 'Descargar'}
+        </a>
+        {onOptimize && (
+          <button 
+            onClick={() => onOptimize(form.title)}
+            className="w-11 h-11 flex items-center justify-center border border-zinc-200 dark:border-zinc-700 rounded-xl text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+            title="Optimizar con IA"
+          >
+            <RefreshCw size={18} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // --- Main App ---
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'resolutions' | 'assistant' | 'forms'>('resolutions');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'resolutions' | 'assistant' | 'forms'>('dashboard');
   const [resolutions, setResolutions] = useState<Resolution[]>([]);
-  const [forms, setForms] = useState<{title: string, desc: string, url: string, status?: 'checking' | 'ok' | 'error'}[]>([]);
+  const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAiSearching, setIsAiSearching] = useState(false);
   const [isAiFormSearching, setIsAiFormSearching] = useState(false);
@@ -117,27 +207,137 @@ export default function App() {
   const [isTyping, setIsTyping] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<{ data: string, mimeType: string, name: string } | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
+    }
+    return 'light';
+  });
+  const [favorites, setFavorites] = useState<{ resolutions: string[], forms: string[] }>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('favorites');
+      return saved ? JSON.parse(saved) : { resolutions: [], forms: [] };
+    }
+    return { resolutions: [], forms: [] };
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('favorites', JSON.stringify(favorites));
+    // Update local state to reflect favorites
+    setResolutions(prev => prev.map(r => ({ ...r, isFavorite: favorites.resolutions.includes(r.id) })));
+    setForms(prev => prev.map(f => ({ ...f, isFavorite: favorites.forms.includes(f.title) })));
+  }, [favorites]);
+
+  useEffect(() => {
     fetchResolutions();
     initializeForms();
   }, []);
 
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
+  const toggleFavoriteResolution = (id: string) => {
+    setFavorites(prev => {
+      const isFav = prev.resolutions.includes(id);
+      return {
+        ...prev,
+        resolutions: isFav ? prev.resolutions.filter(rid => rid !== id) : [...prev.resolutions, id]
+      };
+    });
+  };
+
+  const toggleFavoriteForm = (title: string) => {
+    setFavorites(prev => {
+      const isFav = prev.forms.includes(title);
+      return {
+        ...prev,
+        forms: isFav ? prev.forms.filter(t => t !== title) : [...prev.forms, title]
+      };
+    });
+  };
+
   const initializeForms = () => {
-    const initialForms = [
-      { title: 'Declaración Jurada de Cargos', desc: 'Formulario para informar situación de revista.', url: 'https://dges-sal.infd.edu.ar/sitio/upload/form_declarac_jurada_REV_3.pdf' },
-      { title: 'Solicitud de Licencia', desc: 'Trámite para pedidos de licencia médica o personal.', url: 'https://www.edusalta.gov.ar/index.php/docentes/formularios/file/2-solicitud-de-licencia' },
-      { title: 'Certificación de Servicios', desc: 'Documento para acreditar antigüedad y servicios.', url: 'https://www.edusalta.gov.ar/index.php/docentes/formularios/file/3-certificacion-de-servicios' },
-      { title: 'Formulario de Salario Familiar', desc: 'Para el cobro de asignaciones familiares.', url: 'https://www.edusalta.gov.ar/index.php/docentes/formularios/file/4-formulario-de-salario-familiar' },
-      { title: 'Alta de Seguro de Vida', desc: 'Formulario para el alta en el seguro de vida obligatorio.', url: 'https://www.edusalta.gov.ar/index.php/docentes/formularios/file/5-alta-seguro-de-vida' },
-      { title: 'Baja de Seguro de Vida', desc: 'Formulario para la baja en el seguro de vida.', url: 'https://www.edusalta.gov.ar/index.php/docentes/formularios/file/6-baja-seguro-de-vida' },
-      { title: 'Solicitud de Traslado', desc: 'Formulario para solicitar traslado de establecimiento.', url: 'https://www.edusalta.gov.ar/index.php/docentes/formularios/file/7-solicitud-de-traslado' },
-      { title: 'Reclamo de Haberes', desc: 'Formulario para reclamos relacionados con el sueldo.', url: 'https://www.edusalta.gov.ar/index.php/docentes/formularios/file/8-reclamo-de-haberes' }
-    ];
+    const initialForms: Form[] = [
+      { 
+        title: 'Declaración Jurada de Cargos', 
+        desc: 'Formulario oficial para informar situación de revista (DGES/INFD). Requerido para altas y movimientos.', 
+        url: 'https://dges-sal.infd.edu.ar/sitio/upload/form_declarac_jurada_REV_3.pdf',
+        verified: true,
+        category: 'Trámites'
+      },
+      { 
+        title: 'Solicitud de Licencia (Art. 4118)', 
+        desc: 'Formulario único para licencias con y sin goce de haberes. Asegúrese de marcar el casillero correspondiente.', 
+        url: 'https://www.edusalta.gov.ar/index.php/docentes/formularios/file/2-solicitud-de-licencia?task=document.download',
+        verified: true,
+        category: 'Licencias'
+      },
+      { 
+        title: 'Certificación de Servicios', 
+        desc: 'Documento necesario para acreditar antigüedad, trámites jubilatorios y subsidios.', 
+        url: 'https://www.edusalta.gov.ar/index.php/docentes/formularios/file/3-certificacion-de-servicios?task=document.download',
+        verified: true,
+        category: 'Trámites'
+      },
+      { 
+        title: 'Salario Familiar (Asignaciones)', 
+        desc: 'Formulario para el cobro de asignaciones familiares (Hijo, Escolaridad, Matrimonio).', 
+        url: 'https://www.edusalta.gov.ar/index.php/docentes/formularios/file/4-formulario-de-salario-familiar?task=document.download',
+        verified: true,
+        category: 'Salarios'
+      },
+      { 
+        title: 'Seguro de Vida Obligatorio', 
+        desc: 'Declaración de beneficiarios y alta en el seguro de vida provincial docente.', 
+        url: 'https://www.edusalta.gov.ar/index.php/docentes/formularios/file/5-alta-seguro-de-vida?task=document.download',
+        verified: true,
+        category: 'Seguros'
+      },
+      { 
+        title: 'Solicitud de Traslado', 
+        desc: 'Formulario oficial para solicitar el traslado definitivo o transitorio entre instituciones.', 
+        url: 'https://www.edusalta.gov.ar/index.php/docentes/formularios/file/7-solicitud-de-traslado?task=document.download',
+        verified: true,
+        category: 'Trámites'
+      },
+      { 
+        title: 'Reclamo de Haberes', 
+        desc: 'Para presentar ante la Dirección de Administración por errores en liquidación o falta de pago.', 
+        url: 'https://www.edusalta.gov.ar/index.php/docentes/formularios/file/8-reclamo-de-haberes?task=document.download',
+        verified: true,
+        category: 'Salarios'
+      },
+      { 
+        title: 'Concepto Profesional Docente', 
+        desc: 'Formulario de calificación anual. Debe ser completado por el directivo y el docente.', 
+        url: 'https://www.edusalta.gov.ar/index.php/docentes/formularios/file/10-concepto-profesional-docente?task=document.download',
+        verified: true,
+        category: 'Trámites'
+      },
+      { 
+        title: 'Inscripción Interinatos y Suplencias', 
+        desc: 'Formulario para la ficha de inscripción ante la Junta de Calificación de Méritos.', 
+        url: 'https://www.edusalta.gov.ar/index.php/docentes/junta-de-calificacion/file/11-inscripcion-interinatos-y-suplencias?task=document.download',
+        verified: true,
+        category: 'Junta'
+      },
+      { 
+        title: 'Certificado de Residencia', 
+        desc: 'Declaración jurada de domicilio para acreditar residencia ante Recursos Humanos.', 
+        url: 'https://www.edusalta.gov.ar/index.php/docentes/formularios/file/12-certificado-de-residencia?task=document.download',
+        verified: true,
+        category: 'Trámites'
+      }
+    ].map(f => ({ ...f, isFavorite: favorites.forms.includes(f.title) }));
     setForms(initialForms);
   };
 
@@ -183,7 +383,8 @@ export default function App() {
             date: 'Consultar documento',
             downloads: '-',
             downloadUrl: pdfUrl,
-            pdfUrl: pdfUrl
+            pdfUrl: pdfUrl,
+            isFavorite: favorites.resolutions.includes(`res-fallback-${index}`)
           });
         });
       } else {
@@ -224,7 +425,8 @@ export default function App() {
             date: dateMatch ? dateMatch[1] : 'Fecha desconocida',
             downloads: downloadsMatch ? downloadsMatch[1] : '0',
             downloadUrl,
-            pdfUrl: pdfUrl || '#'
+            pdfUrl: pdfUrl || '#',
+            isFavorite: favorites.resolutions.includes(`res-${index}`)
           });
         });
       }
@@ -255,10 +457,24 @@ export default function App() {
       
       const response = await ai.models.generateContent({
         model,
-        contents: `Busca resoluciones ministeriales de educación de Salta relacionadas con: "${searchQuery}". 
+        contents: `Actúa como un buscador experto de normativa docente de Salta, Argentina. 
+        Tu objetivo es encontrar resoluciones ministeriales (Res. Min.), decretos o disposiciones específicas relacionadas con: "${searchQuery}".
+        
+        FUENTES DE BÚSQUEDA PRIORITARIAS:
+        1. Boletín Oficial de Salta (boletinoficialsalta.gob.ar) - Es la fuente legal definitiva.
+        2. EduSalta (edusalta.gov.ar) - Portal oficial de educación.
+        3. Ministerio de Educación, Cultura, Ciencia y Tecnología de Salta.
+        
+        ESTRATEGIA DE BÚSQUEDA:
+        - Si el usuario pone un número (ej. "5130/11"), busca exactamente ese número de resolución.
+        - Si el usuario busca un tema (ej. "titularización secundaria"), busca las resoluciones más recientes (2023-2025).
+        - Intenta encontrar el enlace directo al PDF o a la página del Boletín Oficial que contiene el texto.
+        
+        FORMATO DE SALIDA (JSON):
         Devuelve una lista de objetos JSON con el formato: 
-        [{"title": "Nombre de la Resolución", "downloadUrl": "URL_DEL_PDF", "date": "Fecha o Año"}]
-        Solo devuelve el JSON, nada más. Si no encuentras enlaces directos, busca en el Boletín Oficial de Salta o EduSalta.`,
+        [{"title": "Res. Min. N° XXX/YY - Descripción clara", "downloadUrl": "URL_DIRECTA_AL_PDF_O_BOLETIN", "date": "DD/MM/AAAA"}]
+        
+        IMPORTANTE: Solo devuelve el JSON. Si no encuentras resultados exactos, intenta buscar términos relacionados en el Boletín Oficial de Salta.`,
         config: {
           tools: [{ googleSearch: {} }],
           responseMimeType: "application/json"
@@ -301,10 +517,12 @@ export default function App() {
       
       const response = await ai.models.generateContent({
         model,
-        contents: `Busca enlaces directos de descarga para formularios docentes de EduSalta relacionados con: "${formSearchQuery}". 
+        contents: `Busca el enlace DIRECTO de descarga (PDF o DOCX) para el formulario docente de EduSalta: "${formSearchQuery}". 
+        IMPORTANTE: El enlace debe ser el archivo final, no la página de inicio. 
+        Prioriza dominios .gov.ar o .edu.ar de Salta. 
         Devuelve una lista de objetos JSON con el formato: 
         [{"title": "Nombre del Formulario", "desc": "Breve descripción", "url": "URL_DE_DESCARGA_DIRECTA"}]
-        Solo devuelve el JSON, nada más. Prioriza enlaces de edusalta.gov.ar o sitios oficiales de Salta.`,
+        Solo devuelve el JSON, nada más.`,
         config: {
           tools: [{ googleSearch: {} }],
           responseMimeType: "application/json"
@@ -314,7 +532,20 @@ export default function App() {
       const aiResults = JSON.parse(response.text || "[]");
       
       if (aiResults.length > 0) {
-        setForms(aiResults);
+        const verifiedResults = aiResults.map((f: any) => ({ ...f, verified: true }));
+        setForms(prev => {
+          // Merge results: keep existing if same title, but update URL if AI found a better one
+          const updated = [...prev];
+          verifiedResults.forEach((newForm: any) => {
+            const index = updated.findIndex(f => f.title.toLowerCase() === newForm.title.toLowerCase());
+            if (index >= 0) {
+              updated[index] = { ...updated[index], ...newForm };
+            } else {
+              updated.unshift(newForm);
+            }
+          });
+          return updated;
+        });
       }
     } catch (error) {
       console.error('Error in AI form search:', error);
@@ -406,20 +637,20 @@ export default function App() {
   );
 
   const SidebarContent = () => (
-    <>
+    <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-10 px-2">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-600/20">
             <BookOpen size={22} />
           </div>
           <div>
-            <h1 className="font-bold text-lg leading-tight">EduSalta</h1>
+            <h1 className="font-bold text-lg leading-tight dark:text-white">EduSalta</h1>
             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Asistente Docente</p>
           </div>
         </div>
         <button 
           onClick={() => setIsSidebarOpen(false)}
-          className="lg:hidden p-2 text-zinc-400 hover:text-zinc-900 transition-colors"
+          className="lg:hidden p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
         >
           <X size={20} />
         </button>
@@ -428,6 +659,12 @@ export default function App() {
       <nav className="space-y-2 flex-1">
         <SidebarItem 
           icon={LayoutDashboard} 
+          label="Inicio" 
+          active={activeTab === 'dashboard'} 
+          onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} 
+        />
+        <SidebarItem 
+          icon={FileText} 
           label="Resoluciones" 
           active={activeTab === 'resolutions'} 
           onClick={() => { setActiveTab('resolutions'); setIsSidebarOpen(false); }} 
@@ -446,22 +683,38 @@ export default function App() {
         />
       </nav>
 
-      <div className="mt-auto pt-6 border-t border-zinc-100">
-        <div className="bg-zinc-50 rounded-2xl p-4">
-          <div className="flex items-center gap-2 text-zinc-500 mb-2">
-            <Info size={14} />
-            <span className="text-xs font-medium">Información Útil</span>
+      <div className="mt-auto pt-6 border-t border-zinc-100 dark:border-zinc-800 space-y-4">
+        <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
+          <div className="flex items-center gap-2 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            {theme === 'light' ? <Sun size={14} /> : <Moon size={14} />}
+            Modo {theme === 'light' ? 'Claro' : 'Oscuro'}
           </div>
-          <p className="text-[11px] text-zinc-400 leading-relaxed">
-            Esta herramienta optimiza la búsqueda de normativa oficial para docentes de Salta.
+          <button 
+            onClick={toggleTheme}
+            className="w-10 h-5 bg-zinc-200 dark:bg-zinc-700 rounded-full relative transition-colors"
+          >
+            <motion.div 
+              animate={{ x: theme === 'light' ? 2 : 22 }}
+              className="absolute top-1 w-3 h-3 bg-white rounded-full shadow-sm"
+            />
+          </button>
+        </div>
+        
+        <div className="px-4 py-3 bg-emerald-600 rounded-2xl text-white">
+          <div className="flex items-center gap-2 mb-2">
+            <Bell size={16} />
+            <span className="text-xs font-bold uppercase tracking-wider">Novedades</span>
+          </div>
+          <p className="text-[10px] leading-relaxed opacity-90">
+            Se actualizaron las resoluciones de titularización 2024.
           </p>
         </div>
       </div>
-    </>
+    </div>
   );
 
   return (
-    <div className="flex h-screen bg-[#F8F9FA] text-zinc-900 font-sans overflow-hidden relative">
+    <div className={`flex h-screen bg-[#F8F9FA] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans overflow-hidden relative ${theme}`}>
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {isSidebarOpen && (
@@ -487,37 +740,52 @@ export default function App() {
       </AnimatePresence>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-72 bg-white border-r border-zinc-200 flex-col p-6">
+      <aside className="hidden lg:flex w-72 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex-col p-6">
         <SidebarContent />
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden relative w-full">
         {/* Header */}
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-zinc-200 flex items-center justify-between px-4 lg:px-8 z-10">
+        <header className="h-20 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between px-4 lg:px-8 z-10">
           <div className="flex items-center gap-3 lg:gap-4 overflow-hidden">
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 -ml-2 text-zinc-500 hover:bg-zinc-100 rounded-xl transition-colors"
+              className="lg:hidden p-2 -ml-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
             >
               <Menu size={24} />
             </button>
             <div className="flex flex-col lg:flex-row lg:items-center gap-0 lg:gap-4 overflow-hidden">
-              <h2 className="text-base lg:text-xl font-bold text-zinc-900 truncate">
+              <h2 className="text-base lg:text-xl font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                {activeTab === 'dashboard' && 'Panel de Control'}
                 {activeTab === 'resolutions' && 'Normativa y Resoluciones'}
                 {activeTab === 'assistant' && 'Asistente Inteligente'}
                 {activeTab === 'forms' && 'Buscador de Formularios'}
               </h2>
               {activeTab === 'resolutions' && (
-                <span className="hidden sm:inline-block bg-zinc-100 text-zinc-500 px-2.5 py-0.5 rounded-full text-[10px] lg:text-xs font-medium w-fit">
+                <span className="hidden sm:inline-block bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-2.5 py-0.5 rounded-full text-[10px] lg:text-xs font-medium w-fit">
                   {filteredResolutions.length} documentos
                 </span>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2 lg:gap-4">
-            {activeTab === 'resolutions' && (
+            <div className="flex items-center gap-2 lg:gap-4">
+              {activeTab === 'resolutions' && (
+                <div className="hidden md:flex items-center gap-2 mr-4">
+                  <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Accesos rápidos:</span>
+                  {['Titularización', 'Traslados', 'Licencias', 'Seguro de Vida', 'Salario Familiar'].map(topic => (
+                    <button
+                      key={topic}
+                      onClick={() => { setSearchQuery(topic); handleAiResolutionSearch(); }}
+                      className="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg text-[10px] font-medium transition-colors dark:text-zinc-400"
+                    >
+                      {topic}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {activeTab === 'resolutions' && (
               <button 
                 onClick={fetchResolutions}
                 disabled={loading}
@@ -537,7 +805,7 @@ export default function App() {
                     value={activeTab === 'resolutions' ? searchQuery : formSearchQuery}
                     onChange={(e) => activeTab === 'resolutions' ? setSearchQuery(e.target.value) : setFormSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && activeTab === 'resolutions' && handleAiResolutionSearch()}
-                    className="pl-10 pr-4 py-2.5 bg-zinc-100 border-transparent focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 rounded-xl text-sm w-40 lg:w-64 transition-all outline-none"
+                    className="pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-800 border-transparent focus:bg-white dark:focus:bg-zinc-900 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 rounded-xl text-sm w-40 lg:w-64 transition-all outline-none dark:text-zinc-100"
                   />
                 </div>
                 {activeTab === 'resolutions' && (
@@ -552,7 +820,7 @@ export default function App() {
                 )}
               </div>
             )}
-            <div className="w-10 h-10 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-500 hover:bg-zinc-200 transition-colors cursor-pointer shrink-0">
+            <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer shrink-0">
               <Info size={20} />
             </div>
           </div>
@@ -560,7 +828,7 @@ export default function App() {
 
         {/* Mobile Search Bar */}
         {(activeTab === 'resolutions' || activeTab === 'forms') && (
-          <div className="sm:hidden px-4 py-3 bg-white border-b border-zinc-100 flex gap-2">
+          <div className="sm:hidden px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
               <input 
@@ -569,7 +837,7 @@ export default function App() {
                 value={activeTab === 'resolutions' ? searchQuery : formSearchQuery}
                 onChange={(e) => activeTab === 'resolutions' ? setSearchQuery(e.target.value) : setFormSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && activeTab === 'resolutions' && handleAiResolutionSearch()}
-                className="w-full pl-9 pr-4 py-2 bg-zinc-100 border-transparent rounded-xl text-sm outline-none"
+                className="w-full pl-9 pr-4 py-2 bg-zinc-100 dark:bg-zinc-800 border-transparent rounded-xl text-sm outline-none dark:text-zinc-100"
               />
             </div>
             {activeTab === 'resolutions' && (
@@ -587,6 +855,126 @@ export default function App() {
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-4 lg:p-8">
           <AnimatePresence mode="wait">
+            {activeTab === 'dashboard' && (
+              <motion.div 
+                key="dashboard"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-8"
+              >
+                {/* Welcome Card */}
+                <div className="relative overflow-hidden bg-emerald-600 rounded-3xl p-8 lg:p-12 text-white shadow-2xl shadow-emerald-600/20">
+                  <div className="relative z-10 max-w-2xl">
+                    <h3 className="text-3xl lg:text-4xl font-bold mb-4">¡Bienvenido, Docente!</h3>
+                    <p className="text-emerald-50 text-lg mb-8 opacity-90">
+                      Gestiona tus trámites, busca normativa oficial y descarga formularios de manera rápida y sencilla.
+                    </p>
+                    <div className="flex flex-wrap gap-4">
+                      <button 
+                        onClick={() => setActiveTab('assistant')}
+                        className="bg-white text-emerald-600 px-6 py-3 rounded-2xl font-bold hover:bg-emerald-50 transition-all flex items-center gap-2"
+                      >
+                        <MessageSquare size={20} />
+                        Consultar IA
+                      </button>
+                      <button 
+                        onClick={() => setActiveTab('forms')}
+                        className="bg-emerald-500/30 backdrop-blur-md border border-emerald-400/30 text-white px-6 py-3 rounded-2xl font-bold hover:bg-emerald-500/40 transition-all flex items-center gap-2"
+                      >
+                        <FileSearch size={20} />
+                        Ver Formularios
+                      </button>
+                    </div>
+                  </div>
+                  {/* Decorative elements */}
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+                  <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-400/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl shadow-sm">
+                    <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4">
+                      <FileText size={24} />
+                    </div>
+                    <h4 className="text-2xl font-bold dark:text-white">{resolutions.length}</h4>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Resoluciones disponibles</p>
+                  </div>
+                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl shadow-sm">
+                    <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-2xl flex items-center justify-center text-amber-600 dark:text-amber-400 mb-4">
+                      <Star size={24} />
+                    </div>
+                    <h4 className="text-2xl font-bold dark:text-white">{favorites.resolutions.length + favorites.forms.length}</h4>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Elementos favoritos</p>
+                  </div>
+                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl shadow-sm">
+                    <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-4">
+                      <CheckCircle size={24} />
+                    </div>
+                    <h4 className="text-2xl font-bold dark:text-white">{forms.filter(f => f.verified).length}</h4>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Formularios verificados</p>
+                  </div>
+                </div>
+
+                {/* Favorites Section */}
+                {(favorites.resolutions.length > 0 || favorites.forms.length > 0) && (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xl font-bold dark:text-white flex items-center gap-2">
+                        <Star className="text-amber-500" fill="currentColor" size={20} />
+                        Tus Favoritos
+                      </h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {resolutions.filter(r => r.isFavorite).map(res => (
+                        <div key={res.id}>
+                          <ResolutionCard resolution={res} onToggleFavorite={toggleFavoriteResolution} />
+                        </div>
+                      ))}
+                      {forms.filter(f => f.isFavorite).map(form => (
+                        <div key={form.title}>
+                          <FormCard form={form} onToggleFavorite={toggleFavoriteForm} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick Actions */}
+                <div className="space-y-6">
+                  <h4 className="text-xl font-bold dark:text-white">Accesos Directos</h4>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                      { label: 'Licencias', icon: BookOpen, color: 'bg-purple-50 text-purple-600', tab: 'resolutions', query: 'Licencias' },
+                      { label: 'Titularización', icon: CheckCircle, color: 'bg-blue-50 text-blue-600', tab: 'resolutions', query: 'Titularización' },
+                      { label: 'Salarios', icon: FileText, color: 'bg-emerald-50 text-emerald-600', tab: 'forms', query: 'Salario' },
+                      { label: 'Traslados', icon: ArrowRight, color: 'bg-amber-50 text-amber-600', tab: 'resolutions', query: 'Traslado' },
+                    ].map((action, i) => (
+                      <button 
+                        key={i}
+                        onClick={() => {
+                          setActiveTab(action.tab as any);
+                          if (action.tab === 'resolutions') {
+                            setSearchQuery(action.query);
+                            handleAiResolutionSearch();
+                          } else {
+                            setFormSearchQuery(action.query);
+                          }
+                        }}
+                        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl hover:border-emerald-500 transition-all text-left group"
+                      >
+                        <div className={`w-12 h-12 ${action.color} dark:bg-opacity-10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                          <action.icon size={24} />
+                        </div>
+                        <span className="font-bold dark:text-white">{action.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {activeTab === 'resolutions' && (
               <motion.div 
                 key="resolutions"
@@ -597,29 +985,29 @@ export default function App() {
               >
                 {loading ? (
                   Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="bg-white border border-zinc-200 rounded-2xl p-5 animate-pulse">
-                      <div className="h-4 w-20 bg-zinc-100 rounded-full mb-4" />
-                      <div className="h-6 w-full bg-zinc-100 rounded-lg mb-2" />
-                      <div className="h-6 w-2/3 bg-zinc-100 rounded-lg mb-4" />
+                    <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 animate-pulse">
+                      <div className="h-4 w-20 bg-zinc-100 dark:bg-zinc-800 rounded-full mb-4" />
+                      <div className="h-6 w-full bg-zinc-100 dark:bg-zinc-800 rounded-lg mb-2" />
+                      <div className="h-6 w-2/3 bg-zinc-100 dark:bg-zinc-800 rounded-lg mb-4" />
                       <div className="flex gap-2">
-                        <div className="h-10 flex-1 bg-zinc-100 rounded-xl" />
-                        <div className="h-10 w-11 bg-zinc-100 rounded-xl" />
+                        <div className="h-10 flex-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl" />
+                        <div className="h-10 w-11 bg-zinc-100 dark:bg-zinc-800 rounded-xl" />
                       </div>
                     </div>
                   ))
                 ) : filteredResolutions.length > 0 ? (
                   filteredResolutions.map(res => (
                     <div key={res.id}>
-                      <ResolutionCard resolution={res} />
+                      <ResolutionCard resolution={res} onToggleFavorite={toggleFavoriteResolution} />
                     </div>
                   ))
                 ) : (
                   <div className="col-span-full flex flex-col items-center justify-center py-20 text-zinc-400">
-                    <div className="w-16 h-16 bg-zinc-50 rounded-2xl flex items-center justify-center text-zinc-400 mb-6">
+                    <div className="w-16 h-16 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-400 mb-6">
                       <Search size={32} />
                     </div>
-                    <h3 className="text-xl font-bold text-zinc-900 mb-2">No se encontraron resoluciones</h3>
-                    <p className="text-sm mb-8 text-center max-w-xs text-zinc-500">
+                    <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">No se encontraron resoluciones</h3>
+                    <p className="text-sm mb-8 text-center max-w-xs text-zinc-500 dark:text-zinc-400">
                       El portal oficial de EduSalta podría estar en mantenimiento. Prueba con nuestra búsqueda inteligente.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3">
@@ -633,7 +1021,7 @@ export default function App() {
                       </button>
                       <button 
                         onClick={fetchResolutions}
-                        className="bg-zinc-100 text-zinc-900 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-zinc-200 transition-colors flex items-center gap-2"
+                        className="bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center gap-2"
                       >
                         <RefreshCw size={16} />
                         Reintentar carga oficial
@@ -650,18 +1038,18 @@ export default function App() {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
-                className="h-full flex flex-col max-w-4xl mx-auto bg-white border border-zinc-200 rounded-2xl lg:rounded-3xl shadow-xl shadow-zinc-200/50 overflow-hidden"
+                className="h-full flex flex-col max-w-4xl mx-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl lg:rounded-3xl shadow-xl shadow-zinc-200/50 dark:shadow-none overflow-hidden"
               >
                 {/* Chat Header */}
-                <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-zinc-100 flex items-center gap-3 bg-emerald-50/30">
+                <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center gap-3 bg-emerald-50/30 dark:bg-emerald-900/10">
                   <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white">
                     <MessageSquare size={16} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm">Asistente EduSalta</h3>
+                    <h3 className="font-bold text-sm dark:text-white">Asistente EduSalta</h3>
                     <div className="flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider">En línea</span>
+                      <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium uppercase tracking-wider">En línea</span>
                     </div>
                   </div>
                 </div>
@@ -673,8 +1061,8 @@ export default function App() {
                       <div className="relative group max-w-[90%] lg:max-w-[80%]">
                         <div className={`rounded-2xl p-3 lg:p-4 text-sm leading-relaxed ${
                           msg.role === 'user' 
-                            ? 'bg-zinc-900 text-white rounded-tr-none' 
-                            : 'bg-zinc-100 text-zinc-800 rounded-tl-none border border-zinc-200'
+                            ? 'bg-zinc-900 dark:bg-emerald-600 text-white rounded-tr-none' 
+                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-200 dark:border-zinc-700'
                         }`}>
                           {msg.text}
                         </div>
@@ -696,7 +1084,7 @@ export default function App() {
                   ))}
                   {isTyping && (
                     <div className="flex justify-start">
-                      <div className="bg-zinc-100 border border-zinc-200 rounded-2xl rounded-tl-none p-3 lg:p-4 flex gap-1">
+                      <div className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl rounded-tl-none p-3 lg:p-4 flex gap-1">
                         <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" />
                         <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:0.2s]" />
                         <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:0.4s]" />
@@ -707,15 +1095,15 @@ export default function App() {
                 </div>
 
                 {/* Input */}
-                <div className="p-3 lg:p-4 border-t border-zinc-100 bg-zinc-50/50">
+                <div className="p-3 lg:p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
                   {selectedFile && (
-                    <div className="mb-3 flex items-center gap-2 bg-emerald-50 border border-emerald-100 p-2 rounded-xl">
+                    <div className="mb-3 flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 p-2 rounded-xl">
                       <div className="w-8 h-8 bg-emerald-600 rounded flex items-center justify-center text-white">
                         {selectedFile.mimeType.startsWith('image/') ? <File size={16} /> : <FileText size={16} />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-emerald-900 truncate">{selectedFile.name}</p>
-                        <p className="text-[10px] text-emerald-600 uppercase font-bold">{selectedFile.mimeType.split('/')[1]}</p>
+                        <p className="text-xs font-medium text-emerald-900 dark:text-emerald-100 truncate">{selectedFile.name}</p>
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-bold">{selectedFile.mimeType.split('/')[1]}</p>
                       </div>
                       <button 
                         onClick={() => setSelectedFile(null)}
@@ -735,7 +1123,7 @@ export default function App() {
                     />
                     <button 
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-10 h-10 lg:w-12 lg:h-12 bg-white border border-zinc-200 text-zinc-500 rounded-xl lg:rounded-2xl flex items-center justify-center hover:bg-zinc-50 transition-all shrink-0"
+                      className="w-10 h-10 lg:w-12 lg:h-12 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 rounded-xl lg:rounded-2xl flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all shrink-0"
                     >
                       <Paperclip size={20} />
                     </button>
@@ -745,7 +1133,7 @@ export default function App() {
                       onChange={(e) => setUserInput(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                       placeholder="Pregunta algo..." 
-                      className="flex-1 bg-white border border-zinc-200 rounded-xl lg:rounded-2xl px-4 lg:px-5 py-2.5 lg:py-3.5 text-sm focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
+                      className="flex-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl lg:rounded-2xl px-4 lg:px-5 py-2.5 lg:py-3.5 text-sm focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all dark:text-white"
                     />
                     <button 
                       onClick={handleSendMessage}
@@ -755,7 +1143,7 @@ export default function App() {
                       {isTyping ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                     </button>
                   </div>
-                  <p className="text-[9px] lg:text-[10px] text-center text-zinc-400 mt-2 lg:mt-3">
+                  <p className="text-[9px] lg:text-[10px] text-center text-zinc-400 dark:text-zinc-500 mt-2 lg:mt-3">
                     Puedes adjuntar imágenes o PDFs para que el asistente los analice.
                   </p>
                 </div>
@@ -768,118 +1156,95 @@ export default function App() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="max-w-4xl mx-auto"
+                className="space-y-8"
               >
-                <div className="bg-white border border-zinc-200 rounded-2xl lg:rounded-3xl p-5 lg:p-8 mb-6 lg:mb-8">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 lg:w-12 lg:h-12 bg-emerald-50 rounded-xl lg:rounded-2xl flex items-center justify-center text-emerald-600 shrink-0">
-                        <FileSearch size={20} />
-                      </div>
-                      <div>
-                        <h3 className="text-lg lg:text-xl font-bold">Buscador de Formularios</h3>
-                        <p className="text-zinc-500 text-xs lg:text-sm">Encuentra rápidamente los documentos que necesitas.</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1 sm:w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
-                        <input 
-                          type="text" 
-                          placeholder="Buscar formulario..."
-                          value={formSearchQuery}
-                          onChange={(e) => setFormSearchQuery(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleAiFormSearch()}
-                          className="w-full pl-9 pr-4 py-2.5 bg-zinc-100 border-transparent focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 rounded-xl text-sm outline-none transition-all"
-                        />
-                      </div>
-                      <button 
-                        onClick={handleAiFormSearch}
-                        disabled={isAiFormSearching || !formSearchQuery.trim()}
-                        className="bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all disabled:opacity-50 shadow-lg shadow-emerald-600/20 flex items-center gap-2"
+                {/* Categories */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+                    {['Todos', 'Licencias', 'Trámites', 'Salarios', 'Seguros', 'Junta'].map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => setFormSearchQuery(cat === 'Todos' ? '' : cat)}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                          (cat === 'Todos' && !formSearchQuery) || formSearchQuery === cat
+                            ? 'bg-white dark:bg-zinc-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                            : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+                        }`}
                       >
-                        {isAiFormSearching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-                        <span className="hidden sm:inline">Buscar con IA</span>
+                        {cat}
                       </button>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
-                    {forms.filter(f => f.title.toLowerCase().includes(formSearchQuery.toLowerCase()) || f.desc.toLowerCase().includes(formSearchQuery.toLowerCase()))
-                    .map((form, i) => (
-                      <div 
-                        key={i} 
-                        className="p-4 border border-zinc-100 rounded-xl lg:rounded-2xl hover:border-emerald-200 hover:bg-emerald-50/30 transition-all group relative"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-semibold text-sm lg:text-base text-zinc-900 group-hover:text-emerald-700 transition-colors">{form.title}</h4>
-                          <div className="flex gap-2">
-                            {form.url && form.url !== '#' ? (
-                              <a 
-                                href={form.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 bg-zinc-900 text-white rounded-lg hover:bg-emerald-600 transition-colors"
-                                title="Descargar formulario"
-                              >
-                                <Download size={16} />
-                              </a>
-                            ) : (
-                              <button 
-                                onClick={() => {
-                                  setFormSearchQuery(form.title);
-                                  handleAiFormSearch();
-                                }}
-                                className="p-2 bg-amber-50 text-amber-600 border border-amber-100 rounded-lg hover:bg-amber-100 transition-colors"
-                                title="Buscar enlace con IA"
-                              >
-                                <Search size={16} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <p className="text-[11px] lg:text-xs text-zinc-500 leading-relaxed mb-3">{form.desc}</p>
-                        
-                        {(!form.url || form.url === '#') && (
-                          <div className="flex items-center gap-2 text-[10px] text-amber-600 font-bold bg-amber-50 px-2 py-1 rounded-md w-fit">
-                            <Info size={12} />
-                            <span>Enlace no disponible - Usa el buscador IA</span>
-                          </div>
-                        )}
-                        
-                        {form.url && form.url !== '#' && (
-                          <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span>Documento listo para descargar</span>
-                            <ChevronRight size={12} />
-                          </div>
-                        )}
-                      </div>
                     ))}
-                    {formSearchQuery && forms.filter(f => f.title.toLowerCase().includes(formSearchQuery.toLowerCase()) || f.desc.toLowerCase().includes(formSearchQuery.toLowerCase())).length === 0 && (
-                      <div className="col-span-full py-10 text-center text-zinc-400">
-                        <p className="text-sm">No se encontraron formularios locales. Prueba con la búsqueda IA.</p>
-                      </div>
-                    )}
                   </div>
                 </div>
 
-                <div className="bg-emerald-600 rounded-2xl lg:rounded-3xl p-6 lg:p-8 text-white flex flex-col md:flex-row items-center gap-6 lg:gap-8 shadow-xl shadow-emerald-600/20">
-                  <div className="flex-1 text-center md:text-left">
-                    <h3 className="text-xl lg:text-2xl font-bold mb-2">¿No encuentras el formulario?</h3>
-                    <p className="text-emerald-50 text-xs lg:text-sm opacity-90 leading-relaxed">
-                      Pregúntale a nuestro asistente inteligente. Puede buscar en tiempo real en el portal de EduSalta.
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {forms
+                    .filter(f => 
+                      f.title.toLowerCase().includes(formSearchQuery.toLowerCase()) || 
+                      f.category?.toLowerCase().includes(formSearchQuery.toLowerCase()) ||
+                      f.desc.toLowerCase().includes(formSearchQuery.toLowerCase())
+                    )
+                    .map((form) => (
+                      <div key={form.title}>
+                        <FormCard 
+                          form={form} 
+                          onToggleFavorite={toggleFavoriteForm}
+                          onOptimize={(title) => {
+                            setFormSearchQuery(title);
+                            handleAiFormSearch();
+                          }}
+                        />
+                      </div>
+                    ))}
+                </div>
+
+                {forms.filter(f => 
+                  f.title.toLowerCase().includes(formSearchQuery.toLowerCase()) || 
+                  f.category?.toLowerCase().includes(formSearchQuery.toLowerCase()) ||
+                  f.desc.toLowerCase().includes(formSearchQuery.toLowerCase())
+                ).length === 0 && (
+                  <div className="col-span-full py-20 text-center">
+                    <div className="w-20 h-20 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-6 text-zinc-400">
+                      <FileSearch size={40} />
+                    </div>
+                    <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">No se encontraron formularios</h3>
+                    <p className="text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
+                      Prueba con otros términos o usa la Búsqueda IA para encontrar el documento oficial.
+                    </p>
+                  </div>
+                )}
+
+                <div className="bg-emerald-600 rounded-3xl p-8 lg:p-12 text-white flex flex-col md:flex-row items-center gap-8 shadow-2xl shadow-emerald-600/20 overflow-hidden relative">
+                  <div className="relative z-10 flex-1 text-center md:text-left">
+                    <h3 className="text-2xl lg:text-3xl font-bold mb-4">¿No encuentras el formulario?</h3>
+                    <p className="text-emerald-50 text-base lg:text-lg opacity-90 leading-relaxed mb-8">
+                      Nuestro asistente inteligente puede buscar en tiempo real en los portales oficiales de Salta para encontrar el enlace directo y actualizado.
                     </p>
                     <button 
                       onClick={() => setActiveTab('assistant')}
-                      className="mt-4 lg:mt-6 bg-white text-emerald-700 px-5 lg:px-6 py-2.5 lg:py-3 rounded-xl font-bold text-xs lg:text-sm hover:bg-emerald-50 transition-colors"
+                      className="bg-white text-emerald-700 px-8 py-3.5 rounded-2xl font-bold text-sm lg:text-base hover:bg-emerald-50 transition-all shadow-lg"
                     >
                       Consultar al Asistente
                     </button>
                   </div>
-                  <div className="hidden md:flex w-32 h-32 lg:w-48 lg:h-48 bg-white/10 rounded-full items-center justify-center backdrop-blur-sm">
-                    <MessageSquare size={48} lg:size={64} className="text-white opacity-50" />
+                  <div className="relative z-10 hidden md:flex w-48 h-48 bg-white/10 rounded-full items-center justify-center backdrop-blur-md border border-white/20">
+                    <MessageSquare size={64} className="text-white opacity-50" />
                   </div>
+                  {/* Decorative elements */}
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
                 </div>
+
+                {isAiFormSearching && (
+                  <div className="fixed bottom-8 right-8 bg-zinc-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-50 border border-zinc-800 animate-in fade-in slide-in-from-bottom-4">
+                    <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center">
+                      <Loader2 size={20} className="animate-spin" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">Verificando enlaces...</p>
+                      <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">Búsqueda Inteligente Activa</p>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
